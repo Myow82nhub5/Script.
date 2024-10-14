@@ -1,0 +1,170 @@
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+local UserInputService = game:GetService("UserInputService")
+
+-- Configuration
+local Config = {
+    Prediction = 0.15,
+    JumpOffset = Vector3.new(0, 0.067, 0),
+    Range = 40,
+}
+
+-- Function to create the GUI
+local function createGUI()
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+    -- Main Frame setup
+    local MainFrame = Instance.new("Frame")
+    MainFrame.Size = UDim2.new(0, 300, 0, 300)
+    MainFrame.Position = UDim2.new(0.5, -150, 0.5, -150)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    MainFrame.BorderSizePixel = 0
+    MainFrame.Visible = false -- Start hidden
+    MainFrame.Parent = ScreenGui
+
+    -- Title setup
+    local Title = Instance.new("TextLabel")
+    Title.Size = UDim2.new(1, 0, 0, 50)
+    Title.Position = UDim2.new(0, 0, 0, 0)
+    Title.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    Title.BorderSizePixel = 0
+    Title.Text = "klusi.lua Settings"
+    Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Title.Font = Enum.Font.SourceSansBold
+    Title.TextSize = 20
+    Title.Parent = MainFrame
+
+    -- Prediction TextBox
+    local PredictionBox = Instance.new("TextBox")
+    PredictionBox.Size = UDim2.new(1, -10, 0, 30)
+    PredictionBox.Position = UDim2.new(0, 5, 0, 60)
+    PredictionBox.Text = tostring(Config.Prediction)
+    PredictionBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    PredictionBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    PredictionBox.Parent = MainFrame
+
+    -- Jump Offset TextBox
+    local JumpOffsetBox = Instance.new("TextBox")
+    JumpOffsetBox.Size = UDim2.new(1, -10, 0, 30)
+    JumpOffsetBox.Position = UDim2.new(0, 5, 0, 100)
+    JumpOffsetBox.Text = tostring(Config.JumpOffset.Y)
+    JumpOffsetBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    JumpOffsetBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    JumpOffsetBox.Parent = MainFrame
+
+    -- Apply Button
+    local ApplyButton = Instance.new("TextButton")
+    ApplyButton.Size = UDim2.new(1, -10, 0, 40)
+    ApplyButton.Position = UDim2.new(0, 5, 0, 150)
+    ApplyButton.Text = "Apply Settings"
+    ApplyButton.BackgroundColor3 = Color3.fromRGB(255, 215, 0)
+    ApplyButton.Parent = MainFrame
+
+    -- Camlock Button setup
+    local CamlockButton = Instance.new("TextButton")
+    CamlockButton.Size = UDim2.new(0, 180, 0, 60)
+    CamlockButton.Position = UDim2.new(1, -185, 0, 5) -- Top right corner
+    CamlockButton.Text = "Camlock: Off"
+    CamlockButton.BackgroundColor3 = Color3.fromRGB(255, 215, 0)
+    CamlockButton.Parent = ScreenGui
+
+    -- Show GUI Button
+    local ShowGuiButton = Instance.new("TextButton")
+    ShowGuiButton.Size = UDim2.new(0, 100, 0, 50)
+    ShowGuiButton.Position = UDim2.new(1, -205, 0, 70) -- Position for Show GUI button
+    ShowGuiButton.Text = "Show GUI"
+    ShowGuiButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+    ShowGuiButton.Parent = ScreenGui
+
+    -- Close GUI Button
+    local CloseGuiButton = Instance.new("TextButton")
+    CloseGuiButton.Size = UDim2.new(0, 100, 0, 50)
+    CloseGuiButton.Position = UDim2.new(1, -105, 0, 70) -- Position next to Show GUI button
+    CloseGuiButton.Text = "Close GUI"
+    CloseGuiButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    CloseGuiButton.Parent = ScreenGui
+
+    -- Camlock functionality
+    local camlockEnabled = false
+    local targetPlayer = nil
+
+    local function getPlayerInFront()
+        local closestPlayer = nil
+        local shortestDistance = Config.Range
+
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                local distance = (player.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+                if distance < shortestDistance then
+                    closestPlayer = player
+                    shortestDistance = distance
+                end
+            end
+        end
+        return closestPlayer
+    end
+
+    local function lockCamera()
+        if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local targetPart = targetPlayer.Character.HumanoidRootPart
+            local targetPosition = targetPart.Position + Config.Prediction * targetPart.Velocity
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetPosition)
+        end
+    end
+
+    CamlockButton.MouseButton1Click:Connect(function()
+        camlockEnabled = not camlockEnabled
+        CamlockButton.Text = "Camlock: " .. (camlockEnabled and "On" or "Off")
+        
+        if camlockEnabled then
+            targetPlayer = getPlayerInFront()
+        else
+            targetPlayer = nil
+        end
+    end)
+
+    -- Apply new prediction and jump offset settings
+    ApplyButton.MouseButton1Click:Connect(function()
+        local newPrediction = tonumber(PredictionBox.Text)
+        local newJumpOffset = tonumber(JumpOffsetBox.Text)
+
+        if newPrediction then
+            Config.Prediction = newPrediction
+        end
+
+        if newJumpOffset then
+            Config.JumpOffset = Vector3.new(0, newJumpOffset, 0)
+        end
+    end)
+
+    -- Show and Close GUI functionality
+    ShowGuiButton.MouseButton1Click:Connect(function()
+        MainFrame.Visible = true
+    end)
+
+    CloseGuiButton.MouseButton1Click:Connect(function()
+        MainFrame.Visible = false
+    end)
+
+    -- Update camera every frame when camlock is active
+    game:GetService("RunService").RenderStepped:Connect(function()
+        if camlockEnabled and targetPlayer then
+            lockCamera()
+        end
+    end)
+end
+
+-- Handle character respawn
+local function onCharacterAdded(character)
+    createGUI() -- Recreate the GUI when respawning
+end
+
+-- Initial setup
+LocalPlayer.CharacterAdded:Connect(onCharacterAdded)
+if LocalPlayer.Character then
+    onCharacterAdded(LocalPlayer.Character)
+else
+    LocalPlayer.CharacterAdded:Wait()
+end
