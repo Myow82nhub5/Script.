@@ -149,16 +149,42 @@ local function createGUI()
     end)
 
     -- Update camera every frame when camlock is active
-    game:GetService("RunService").RenderStepped:Connect(function()
+    local connection -- to store the RenderStepped connection
+    connection = game:GetService("RunService").RenderStepped:Connect(function()
         if camlockEnabled and targetPlayer then
             lockCamera()
         end
     end)
+
+    -- Clean up connection on GUI close
+    CloseGuiButton.MouseButton1Click:Connect(function()
+        MainFrame.Visible = false
+        if connection then
+            connection:Disconnect() -- Disconnect the RenderStepped connection
+            connection = nil
+        end
+    end)
+
+    return connection -- Return the connection for later use
 end
 
 -- Handle character respawn
 local function onCharacterAdded(character)
-    createGUI() -- Recreate the GUI when respawning
+    -- Reset camlock settings on respawn
+    camlockEnabled = false
+    targetPlayer = nil
+    -- Create GUI when respawning
+    local connection = createGUI() -- Store the connection
+
+    -- Disconnect the camera lock when the character dies
+    character:WaitForChild("Humanoid").Died:Connect(function()
+        camlockEnabled = false -- Ensure camlock is off
+        targetPlayer = nil -- Reset target
+        if connection then
+            connection:Disconnect() -- Disconnect the RenderStepped connection
+            connection = nil
+        end
+    end)
 end
 
 -- Initial setup
